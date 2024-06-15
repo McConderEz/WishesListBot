@@ -7,16 +7,16 @@ using System.Threading.Tasks;
 
 namespace WishesListBot.Services
 {
-    public class TelegramBotService
+    public class TelegramBotService : ITelegramBotService
     {
         private readonly PRBot _telegram;
 
         public TelegramBotService(string token)
         {
-            if(string.IsNullOrWhiteSpace(token))
+            if (string.IsNullOrWhiteSpace(token))
                 throw new ArgumentNullException("token is null");
 
-            _telegram = new PRBot (option => 
+            _telegram = new PRBot(option =>
             {
                 option.Token = token;
                 option.ClearUpdatesOnStart = true;
@@ -50,8 +50,8 @@ namespace WishesListBot.Services
             await _telegram.Start();
         }
 
-        
+
     }
 
-    
+
 }
