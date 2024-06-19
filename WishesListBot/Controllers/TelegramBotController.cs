@@ -1,4 +1,5 @@
-﻿using System;
+﻿using PRTelegramBot.Attributes;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -7,6 +8,7 @@ using WishesListBot.Services;
 
 namespace WishesListBot.Presentation.Controllers
 {
+    [BotHandler]
     public class TelegramBotController
     {
         private readonly ITelegramBotService _service;

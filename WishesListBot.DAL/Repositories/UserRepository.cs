@@ -32,7 +32,7 @@ namespace WishesListBot.DAL.Repositories
                 .FirstOrDefaultAsync(u => u.Name.Equals(name));
         }
 
-        public async void AddUserAsync(User user)
+        public async Task AddUserAsync(User user)
         {
             await _dbContext.Users.AddAsync(user);
             await _dbContext.SaveChangesAsync();

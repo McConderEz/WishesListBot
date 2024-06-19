@@ -1,44 +1,56 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
+using Newtonsoft.Json.Linq;
+using PRTelegramBot.Attributes;
+using PRTelegramBot.Configs;
+using PRTelegramBot.Core;
+using PRTelegramBot.Extensions;
+using PRTelegramBot.Models.EventsArgs;
+using System.Reflection;
+using Telegram.Bot;
 using Telegram.Bot.Requests;
+using Telegram.Bot.Types;
+using WishesListBot.DAL;
 using WishesListBot.DAL.Repositories;
+using WishesListBot.Domain;
 using WishesListBot.Presentation.Controllers;
 using WishesListBot.Services;
 
 const string EXIT_COMMAND = "exit";
 
-IServiceCollection serviceCollection = new ServiceCollection();
+var host = Host.CreateDefaultBuilder(args)
+    .ConfigureAppConfiguration((context, config) =>
+    {
+        config.AddJsonFile("C:\\Users\\rusta\\source\\repos\\WishesListBot\\WishesListBot\\appsettings.json", optional: false, reloadOnChange: true);
+    })
+    .ConfigureServices((context, services) =>
+    {
+        services.AddBotHandlers();
+        services.Configure<TelegramBotOptions>(context.Configuration.GetSection("TelegramBot"));
 
-serviceCollection.AddTransient<ITelegramBotService>(provider => 
-{
-    return new TelegramBotService("7425468261:AAF-3NF-UFMy_1Bw_jfrK_9eG3ss6eignkI");
-});
+        services.AddDbContext<BotDbContext>(options =>
+        {
+            options.UseSqlServer(context.Configuration.GetConnectionString("DefaultConnection"));
+        });
 
-serviceCollection.AddTransient<IUserRepository>(provider =>
-{
-    return new UserRepository(new WishesListBot.DAL.BotDbContext());
-});
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IWishRepository, WishRepository>();
+        services.AddScoped<IUserService, UserService>();
+        services.AddScoped<ICommandService, CommandService>();
 
-serviceCollection.AddTransient<IWishRepository>(provider =>
-{
-    return new WishRepository(new WishesListBot.DAL.BotDbContext());
-});
+        services.AddScoped<ITelegramBotService, TelegramBotService>();
+    })
+    .Build();
 
-serviceCollection.AddTransient<ICommandService>(provider =>
-{
-    var serviceProvider = serviceCollection.BuildServiceProvider();
-    var userRepository = serviceProvider.GetRequiredService<IUserRepository>();
-    var wishRepository = serviceProvider.GetRequiredService<IWishRepository>();
-    return new CommandService(userRepository, wishRepository);
-});
-
-var serviceProvider = serviceCollection.BuildServiceProvider();
-
+var serviceProvider = host.Services;
 
 var tgBotService = serviceProvider.GetRequiredService<ITelegramBotService>();
 
 var tgController = new TelegramBotController(tgBotService);
 tgController.Start();
-
 while (true)
 {
     var result = Console.ReadLine();

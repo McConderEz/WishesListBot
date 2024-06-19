@@ -36,7 +36,7 @@ namespace WishesListBot.DAL.Repositories
                 .ToListAsync();
         }
 
-        public async void AddWishAsync(Wish wish)
+        public async Task AddWishAsync(Wish wish)
         {
             await _dbContext.Wishes.AddAsync(wish);
             await _dbContext.SaveChangesAsync();
