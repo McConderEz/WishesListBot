@@ -1,9 +1,13 @@
-﻿using PRTelegramBot.Attributes;
+﻿using Microsoft.Extensions.DependencyInjection;
+using PRTelegramBot.Attributes;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Telegram.Bot;
+using Telegram.Bot.Types;
+using WishesListBot.DAL.Repositories;
 using WishesListBot.Services;
 
 namespace WishesListBot.Presentation.Controllers
@@ -11,16 +15,20 @@ namespace WishesListBot.Presentation.Controllers
     [BotHandler]
     public class TelegramBotController
     {
-        private readonly ITelegramBotService _service;
+        private readonly IUserRepository repository;
+        private readonly IServiceProvider serviceProvider;
 
-        public TelegramBotController(ITelegramBotService service)
+        public TelegramBotController(IUserRepository repository, IServiceProvider serviceProvider)
         {
-            _service = service;
+            this.repository = repository;
+            this.serviceProvider = serviceProvider;
         }
 
-        public void Start()
+
+        [ReplyMenuHandler("Test")]
+        public async Task TestMethodWithDependency(ITelegramBotClient botClient, Update update)
         {
-            _service.Start();
+            await PRTelegramBot.Helpers.Message.Send(botClient, update, $"{nameof(TestMethodWithDependency)}");
         }
     }
 }

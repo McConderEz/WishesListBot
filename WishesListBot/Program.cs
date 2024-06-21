@@ -18,39 +18,79 @@ using WishesListBot.DAL.Repositories;
 using WishesListBot.Domain;
 using WishesListBot.Presentation.Controllers;
 using WishesListBot.Services;
+using WishesListBot.Services.Authorization;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 const string EXIT_COMMAND = "exit";
 
 var host = Host.CreateDefaultBuilder(args)
     .ConfigureAppConfiguration((context, config) =>
     {
-        config.AddJsonFile("C:\\Users\\rusta\\source\\repos\\WishesListBot\\WishesListBot\\appsettings.json", optional: false, reloadOnChange: true);
+        config.AddJsonFile(".\\appsettings.json", optional: false, reloadOnChange: true);
     })
     .ConfigureServices((context, services) =>
     {
+
         services.AddBotHandlers();
         services.Configure<TelegramBotOptions>(context.Configuration.GetSection("TelegramBot"));
 
         services.AddDbContext<BotDbContext>(options =>
         {
-            options.UseSqlServer(context.Configuration.GetConnectionString("DefaultConnection"));
-        });
+            options.UseNpgsql(context.Configuration.GetConnectionString("DefaultConnection"));
+        }, ServiceLifetime.Singleton);
 
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IWishRepository, WishRepository>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<ICommandService, CommandService>();
-
-        services.AddScoped<ITelegramBotService, TelegramBotService>();
+        services.AddScoped<IPasswordHasher, PasswordHasher>();
+        services.AddScoped<IAuthorizationService, AuthorizationService>();
     })
     .Build();
 
 var serviceProvider = host.Services;
+var authorizationService = serviceProvider.GetRequiredService<IAuthorizationService>();
+var authorizationFilter = new AuthorizationFilter(authorizationService);
 
-var tgBotService = serviceProvider.GetRequiredService<ITelegramBotService>();
+var telegram = new PRBotBuilder("7210697457:AAGfIaWrTejyz5VMDeWMvHKt45zofO5Leec")
+                    .SetClearUpdatesOnStart(true)
+                    .SetServiceProvider(serviceProvider)
+                    .Build();
 
-var tgController = new TelegramBotController(tgBotService);
-tgController.Start();
+telegram.Events.OnErrorLog += Events_OnErrorLog;
+telegram.Events.OnCommonLog += Events_OnCommonLog;
+
+telegram.Events.OnPostMessageUpdate += Events_Authorize;
+
+async Task Events_Authorize(BotEventArgs args)
+{
+    var commandService = serviceProvider.GetRequiredService<ICommandService>();
+    var methods = typeof(CommandService).GetMethods()
+        .Where(m => m.GetCustomAttributes(typeof(ReplyMenuHandlerAttribute), true).Any());
+
+    foreach (var method in methods)
+    {
+        var replyMenuHandlerAttribute = method.GetCustomAttribute<ReplyMenuHandlerAttribute>();
+        if (replyMenuHandlerAttribute != null && args.Update.Message.Text == replyMenuHandlerAttribute.Commands.FirstOrDefault())
+        {
+            await authorizationFilter.ExecuteWithAuthorizationCheck(commandService, method, args.BotClient, args.Update, new object[] { args.BotClient, args.Update });
+            break;
+        }
+    }
+}
+telegram.Start();
+
+
+async Task Events_OnCommonLog(CommonLogEventArgs arg)
+{
+    Console.WriteLine(arg.Message);
+}
+
+async Task Events_OnErrorLog(ErrorLogEventArgs arg)
+{
+    Console.WriteLine(arg.Exception);
+}
+
 while (true)
 {
     var result = Console.ReadLine();

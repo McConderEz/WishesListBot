@@ -15,7 +15,7 @@ namespace WishesListBot.DAL
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlServer("data source=(localdb)\\MSSQLLocalDB;Initial Catalog=wishesList;Integrated Security=True;");
+            optionsBuilder.UseNpgsql("Host=localhost;Port=5432;Database=wishesList;Username=postgres;Password=345890");
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

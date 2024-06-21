@@ -27,8 +27,14 @@
 
   <ItemGroup>
     <Reference Include="PRTelegramBot">
-      <HintPath>..\..\PRTelegramBot\PRTelegramBot\bin\Debug\net6.0\PRTelegramBot.dll</HintPath>
+      <HintPath>..\..\..\..\source\repos\PRTelegramBot\PRTelegramBot\bin\Debug\net6.0\PRTelegramBot.dll</HintPath>
     </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

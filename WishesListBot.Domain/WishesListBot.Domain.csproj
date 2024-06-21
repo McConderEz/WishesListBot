@@ -20,8 +20,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\..\source\repos\PRTelegramBot\PRTelegramBot\PRTelegramBot.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Reference Include="PRTelegramBot">
-      <HintPath>..\..\PRTelegramBot\PRTelegramBot\bin\Debug\net6.0\PRTelegramBot.dll</HintPath>
+      <HintPath>..\..\..\..\source\repos\PRTelegramBot\PRTelegramBot\bin\Debug\net6.0\PRTelegramBot.dll</HintPath>
     </Reference>
   </ItemGroup>
 

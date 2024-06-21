@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.6">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -28,7 +29,7 @@
 
   <ItemGroup>
     <Reference Include="PRTelegramBot">
-      <HintPath>..\..\PRTelegramBot\PRTelegramBot\bin\Debug\net6.0\PRTelegramBot.dll</HintPath>
+      <HintPath>..\..\..\..\source\repos\PRTelegramBot\PRTelegramBot\bin\Debug\net6.0\PRTelegramBot.dll</HintPath>
     </Reference>
   </ItemGroup>
 

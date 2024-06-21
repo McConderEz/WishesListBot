@@ -8,6 +8,7 @@ using PRTelegramBot.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.WebSockets;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
@@ -16,6 +17,7 @@ using Telegram.Bot.Types;
 using WishesListBot.DAL;
 using WishesListBot.DAL.Repositories;
 using WishesListBot.Domain;
+using WishesListBot.Services.Authorization;
 
 
 namespace WishesListBot.Services
@@ -24,10 +26,13 @@ namespace WishesListBot.Services
     public class UserService : IUserService
     {
         private readonly IUserRepository _userRepository;
+        private readonly IPasswordHasher _passwordHasher;
+        private Domain.User _currentUser;
 
-        public UserService(IUserRepository userRepository)
+        public UserService(IUserRepository userRepository, IPasswordHasher passwordHasher)
         {
             _userRepository = userRepository;
+            _passwordHasher = passwordHasher;
         }
 
 
@@ -54,6 +59,28 @@ namespace WishesListBot.Services
             handler!.GetCache<UserCache>().Password = update.Message.Text;
             update.ClearStepUserHandler();
 
+            string msg;
+
+            var user = await _userRepository.GetUserByNameAsync(handler.GetCache<UserCache>().Name);
+
+            if (user != null)
+            {
+                var result = _passwordHasher.Verify(handler.GetCache<UserCache>().Password, user.Password);
+
+                if (result)
+                {
+                    msg = "Вы успешно авторизованы!";
+                    _currentUser = user;
+
+                    await PRTelegramBot.Helpers.Message.Send(botClient,update, msg);
+                }
+                else
+                {
+                    msg = "Неверные данные пользователя!";
+                    await PRTelegramBot.Helpers.Message.Send(botClient, update, msg);
+                }
+            }
+
 
             handler.GetCache<UserCache>().ClearData();
         }
@@ -77,18 +104,52 @@ namespace WishesListBot.Services
 
         private async Task RegistrationStop(ITelegramBotClient botClient, Update update)
         {
-            var handler = update.GetStepHandler<StepTelegram>();
-            handler!.GetCache<UserCache>().Password = update.Message.Text;
-            update.ClearStepUserHandler();
-
-            var cache = handler.GetCache<UserCache>();
-
-            await _userRepository.AddUserAsync(new Domain.User
+            try
             {
-                Name = cache.Name,
-                Password = cache.Password
-            });
-            handler.GetCache<UserCache>().ClearData();
+                var handler = update.GetStepHandler<StepTelegram>();
+                handler!.GetCache<UserCache>().Password = update.Message.Text;
+                update.ClearStepUserHandler();
+
+                string msg;
+
+                var cache = handler.GetCache<UserCache>();
+
+                var user = await _userRepository.GetUserByNameAsync(handler.GetCache<UserCache>().Name);
+
+                if (user == null)
+                {
+                    var hashedPassword = _passwordHasher.Generate(handler.GetCache<UserCache>().Password);
+
+                    user = new Domain.User
+                    {
+                        Name = handler.GetCache<UserCache>().Name,
+                        Password = hashedPassword
+                    };
+                    await _userRepository.AddUserAsync(user);
+
+                    msg = "Вы успешно зарегистрировались!";
+
+                    await PRTelegramBot.Helpers.Message.Send(botClient, update, msg);
+                }
+                else
+                {
+                    msg = "Пользователь с таким логином уже зарегистрирован!";
+                    await PRTelegramBot.Helpers.Message.Send(botClient, update, msg);
+                }
+
+                handler.GetCache<UserCache>().ClearData();
+            }
+            catch (Exception ex)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine(ex.Message);
+                Console.ResetColor();
+            }
+        }
+
+        public Domain.User GetCurrentUser()
+        {
+            return _currentUser;
         }
     }
 }
