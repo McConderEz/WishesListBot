@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -27,14 +29,27 @@ namespace WishesListBot.Services
     {
         private readonly IUserRepository _userRepository;
         private readonly IPasswordHasher _passwordHasher;
+        private readonly IMemoryCache _cache;
         private Domain.User _currentUser;
 
-        public UserService(IUserRepository userRepository, IPasswordHasher passwordHasher)
+        public UserService(IUserRepository userRepository, IPasswordHasher passwordHasher,IMemoryCache memoryCache)
         {
             _userRepository = userRepository;
             _passwordHasher = passwordHasher;
+            _cache = memoryCache;
         }
 
+        public Domain.User GetCurrentUser(string userId)
+        {
+            _cache.TryGetValue(userId, out Domain.User currentUser);
+            return currentUser;
+        }
+        private void SetCurrentUser(string userId, Domain.User user)
+        {
+            var cacheEntryOptions = new MemoryCacheEntryOptions()
+                    .SetSlidingExpiration(TimeSpan.FromHours(1));
+            _cache.Set(userId, user,cacheEntryOptions);
+        }
 
         [ReplyMenuHandler("Авторизация")]
         public async Task AuthorizationLoginEnter(ITelegramBotClient botClient, Update update)
@@ -70,9 +85,9 @@ namespace WishesListBot.Services
                 if (result)
                 {
                     msg = "Вы успешно авторизованы!";
-                    _currentUser = user;
+                    SetCurrentUser(update.Message.From.Id.ToString(), user);
 
-                    await PRTelegramBot.Helpers.Message.Send(botClient,update, msg);
+                    await PRTelegramBot.Helpers.Message.Send(botClient, update, msg);
                 }
                 else
                 {
@@ -80,11 +95,16 @@ namespace WishesListBot.Services
                     await PRTelegramBot.Helpers.Message.Send(botClient, update, msg);
                 }
             }
-
+            else
+            {
+                msg = "Пользователь не найден!";
+                await PRTelegramBot.Helpers.Message.Send(botClient, update, msg);
+            }
 
             handler.GetCache<UserCache>().ClearData();
         }
 
+      
         [ReplyMenuHandler("Регистрация")]
         public async Task RegistrationLoginEnter(ITelegramBotClient botClient, Update update)
         {
@@ -147,9 +167,5 @@ namespace WishesListBot.Services
             }
         }
 
-        public Domain.User GetCurrentUser()
-        {
-            return _currentUser;
-        }
     }
 }

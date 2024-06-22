@@ -45,6 +45,7 @@ var host = Host.CreateDefaultBuilder(args)
         services.AddScoped<ICommandService, CommandService>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IAuthorizationService, AuthorizationService>();
+        services.AddMemoryCache();
     })
     .Build();
 
@@ -60,7 +61,7 @@ var telegram = new PRBotBuilder("7210697457:AAGfIaWrTejyz5VMDeWMvHKt45zofO5Leec"
 telegram.Events.OnErrorLog += Events_OnErrorLog;
 telegram.Events.OnCommonLog += Events_OnCommonLog;
 
-telegram.Events.OnPostMessageUpdate += Events_Authorize;
+telegram.Events.OnPostMessageUpdate += async (args) => await Events_Authorize(args);
 
 async Task Events_Authorize(BotEventArgs args)
 {
@@ -73,11 +74,17 @@ async Task Events_Authorize(BotEventArgs args)
         var replyMenuHandlerAttribute = method.GetCustomAttribute<ReplyMenuHandlerAttribute>();
         if (replyMenuHandlerAttribute != null && args.Update.Message.Text == replyMenuHandlerAttribute.Commands.FirstOrDefault())
         {
-            await authorizationFilter.ExecuteWithAuthorizationCheck(commandService, method, args.BotClient, args.Update, new object[] { args.BotClient, args.Update });
+            var isAuthorized = await authorizationFilter.ExecuteWithAuthorizationCheck(commandService, method, args.BotClient, args.Update, new object[] { args.BotClient, args.Update });
+            if (!isAuthorized)
+            {
+                return;
+            }
             break;
         }
     }
 }
+
+
 telegram.Start();
 
 

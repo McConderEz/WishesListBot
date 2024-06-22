@@ -8,16 +8,16 @@ namespace WishesListBot.Services.Authorization
 {
     public class AuthorizationService : IAuthorizationService
     {
-        private readonly UserService _userService;
+        private readonly IUserService _userService;
 
-        public AuthorizationService(UserService userService)
+        public AuthorizationService(IUserService userService)
         {
             _userService = userService;
         }
 
-        public bool IsUserAuthorized()
+        public bool IsUserAuthorized(string userId)
         {
-            return _userService.GetCurrentUser() != null;
+            return _userService.GetCurrentUser(userId) != null;
         }
 
     }

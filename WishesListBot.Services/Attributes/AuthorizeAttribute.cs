@@ -9,5 +9,6 @@ namespace WishesListBot.Services.Attributes
     [AttributeUsage(AttributeTargets.Method,Inherited = true, AllowMultiple = false)]
     public class AuthorizeAttribute : Attribute
     {
+
     }
 }

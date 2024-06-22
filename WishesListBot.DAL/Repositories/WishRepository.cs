@@ -42,5 +42,12 @@ namespace WishesListBot.DAL.Repositories
             await _dbContext.SaveChangesAsync();
         }
 
+        public async Task DeleteWishAsync(int id)
+        {
+            await _dbContext.Wishes.Where(w => w.Id == id)
+                .ExecuteDeleteAsync();
+            await _dbContext.SaveChangesAsync();
+        }
+
     }
 }

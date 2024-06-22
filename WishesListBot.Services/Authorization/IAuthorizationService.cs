@@ -2,6 +2,6 @@
 {
     public interface IAuthorizationService
     {
-        bool IsUserAuthorized();
+        bool IsUserAuthorized(string userId);
     }
 }

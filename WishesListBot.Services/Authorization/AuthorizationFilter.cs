@@ -19,19 +19,19 @@ namespace WishesListBot.Services.Authorization
             _authorizationService = authorizationService;
         }
 
-        public async Task ExecuteWithAuthorizationCheck(object target, MethodInfo method, ITelegramBotClient botClient, Update update, object[] parameters)
+        public async Task<bool> ExecuteWithAuthorizationCheck(object target, MethodInfo method, ITelegramBotClient botClient, Update update, object[] parameters)
         {
             var authorizeAttribute = method.GetCustomAttributes(typeof(AuthorizeAttribute), true).FirstOrDefault();
-            if(authorizeAttribute != null)
+            if (authorizeAttribute != null)
             {
-                if (!_authorizationService.IsUserAuthorized())
+                if (!_authorizationService.IsUserAuthorized(update.Message.From.Id.ToString()))
                 {
                     await botClient.SendTextMessageAsync(update.Message.Chat.Id, "Вы не авторизованы для выполнения этой команды.");
-                    return;
+                    return false;
                 }
             }
 
-            await (Task)method.Invoke(target, parameters);
+            return true;
         }
 
     }

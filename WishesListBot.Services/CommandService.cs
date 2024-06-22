@@ -18,9 +18,9 @@ namespace WishesListBot.Services
     {
         private readonly IWishRepository _wishRepository;
         private readonly IUserRepository _userRepository;
-        private readonly UserService _userService;
+        private readonly IUserService _userService;
 
-        public CommandService(IWishRepository wishRepository, IUserRepository userRepository, UserService userService)
+        public CommandService(IWishRepository wishRepository, IUserRepository userRepository, IUserService userService)
         {
             _wishRepository = wishRepository;
             _userRepository = userRepository;
@@ -28,8 +28,7 @@ namespace WishesListBot.Services
         }
 
 
-        //TODO: Сделать функции добавления и просмотра рандомных желаний
-        //TODO: Сделать функцию удаления желания из бд при просмотре
+        //TODO: Атрибут некорректно работает
 
 
         [ReplyMenuHandler("/start")]
@@ -51,13 +50,21 @@ namespace WishesListBot.Services
             var sendMessage = await PRTelegramBot.Helpers.Message.Send(botClient, update, message, option);
         }
 
-        [Authorize]
+
         [ReplyMenuHandler("Добавить пожелание")]
         public async Task AddWishLogin(ITelegramBotClient botClient, Update update)
         {
-            string msg = "Введите логин адресата:";
-            update.RegisterStepHandler(new StepTelegram(AddWishDescription, new WishCache()));
-            await PRTelegramBot.Helpers.Message.Send(botClient, update, msg);
+            if(_userService.GetCurrentUser(update.Message.From.Id.ToString()) != null)
+            {
+                string msg = "Введите логин адресата:";
+                update.RegisterStepHandler(new StepTelegram(AddWishDescription, new WishCache()));
+                await PRTelegramBot.Helpers.Message.Send(botClient, update, msg);
+            }
+            else
+            {
+                string msg = "Вы не авторизованы!";
+                await PRTelegramBot.Helpers.Message.Send(botClient, update, msg);
+            }
         }
 
         public async Task AddWishDescription(ITelegramBotClient botClient, Update update)
@@ -83,30 +90,45 @@ namespace WishesListBot.Services
             {
                 var wish = new Wish
                 {
-                    DateTime = DateTime.Now,
+                    DateTime = DateTime.UtcNow,
                     Description = handler.GetCache<WishCache>().Description,
                     RecipientName = handler.GetCache<WishCache>().RecipientName,
-                    UserId = _userService.GetCurrentUser().Id
+                    UserId = _userService.GetCurrentUser(update.Message.From.Id.ToString()).Id
                 };
 
                 await _wishRepository.AddWishAsync(wish);
             }
 
 
-            handler.GetCache<UserCache>().ClearData();
+            handler.GetCache<WishCache>().ClearData();
         }
 
 
-        [Authorize]
+
         [ReplyMenuHandler("Посмотреть случайное пожелание")]
         public async Task GetRandomWish(ITelegramBotClient botClient, Update update)
         {
-            var wishes = await _wishRepository.GetWishesAsync(_userService.GetCurrentUser().Name);
+            if (_userService.GetCurrentUser(update.Message.From.Id.ToString()) != null)
+            {
+                var wishes = await _wishRepository.GetWishesAsync(_userService.GetCurrentUser(update.Message.From.Id.ToString()).Name);
 
-            var wisheIds = wishes.Select(w => w.Id).ToList();
+                if(wishes.Count() == 0)
+                {
+                    string msg = "Ваша корзина желаний пуста!";
+                    await PRTelegramBot.Helpers.Message.Send(botClient, update, msg);
+                    return;
+                }
 
-            await PRTelegramBot.Helpers.Message.Send(botClient, update, wishes[wisheIds[new Random().Next(0, wisheIds.Count)]].Description);
+                var randomWish = wishes[new Random().Next(0, wishes.Count)];
 
+                await PRTelegramBot.Helpers.Message.Send(botClient, update, randomWish.Description);
+                await _wishRepository.DeleteWishAsync(randomWish.Id);
+            }
+            else
+            {
+                string msg = "Вы не авторизованы!";
+                await PRTelegramBot.Helpers.Message.Send(botClient, update, msg);
+            }
         }
     }
 }

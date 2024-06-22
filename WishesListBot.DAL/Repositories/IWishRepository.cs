@@ -7,5 +7,6 @@ namespace WishesListBot.DAL.Repositories
         Task AddWishAsync(Wish wish);
         Task<List<Wish>> GetWishesAsync(string name);
         Task<List<Wish>> GetWishesByDateAsync(string name, DateTime dateTime);
+        Task DeleteWishAsync(int id);
     }
 }

@@ -7,5 +7,6 @@ namespace WishesListBot.Services
     {
         Task AuthorizationLoginEnter(ITelegramBotClient botClient, Update update);
         Task RegistrationLoginEnter(ITelegramBotClient botClient, Update update);
+        Domain.User GetCurrentUser(string userId);
     }
 }
