@@ -19,17 +19,22 @@ namespace WishesListBot.Services
         private readonly IWishRepository _wishRepository;
         private readonly IUserRepository _userRepository;
         private readonly IUserService _userService;
+        private readonly IAesEncryption _cryptService;
 
-        public CommandService(IWishRepository wishRepository, IUserRepository userRepository, IUserService userService)
+        public CommandService(IWishRepository wishRepository, IUserRepository userRepository, IUserService userService, IAesEncryption cryptService)
         {
             _wishRepository = wishRepository;
             _userRepository = userRepository;
             _userService = userService;
+            _cryptService = cryptService;
         }
 
 
         //TODO: Атрибут некорректно работает
 
+        //TODO: Добавить аватарку
+        //TODO: Добавить хэширование желаний
+        //TODO: Добавить Список адресатов 
 
         [ReplyMenuHandler("/start")]
         public async Task Welcome(ITelegramBotClient botClient, Update update)
@@ -91,7 +96,7 @@ namespace WishesListBot.Services
                 var wish = new Wish
                 {
                     DateTime = DateTime.UtcNow,
-                    Description = handler.GetCache<WishCache>().Description,
+                    Description = _cryptService.Encrypt(handler.GetCache<WishCache>().Description),
                     RecipientName = handler.GetCache<WishCache>().RecipientName,
                     UserId = _userService.GetCurrentUser(update.Message.From.Id.ToString()).Id
                 };
@@ -121,7 +126,7 @@ namespace WishesListBot.Services
 
                 var randomWish = wishes[new Random().Next(0, wishes.Count)];
 
-                await PRTelegramBot.Helpers.Message.Send(botClient, update, randomWish.Description);
+                await PRTelegramBot.Helpers.Message.Send(botClient, update, _cryptService.Decrypt(randomWish.Description));
                 await _wishRepository.DeleteWishAsync(randomWish.Id);
             }
             else

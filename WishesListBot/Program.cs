@@ -10,6 +10,7 @@ using PRTelegramBot.Core;
 using PRTelegramBot.Extensions;
 using PRTelegramBot.Models.EventsArgs;
 using System.Reflection;
+using System.Reflection.Metadata.Ecma335;
 using Telegram.Bot;
 using Telegram.Bot.Requests;
 using Telegram.Bot.Types;
@@ -45,6 +46,7 @@ var host = Host.CreateDefaultBuilder(args)
         services.AddScoped<ICommandService, CommandService>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IAuthorizationService, AuthorizationService>();
+        services.AddScoped<IAesEncryption, AesEncryption>(provider => new AesEncryption("test", "test"));
         services.AddMemoryCache();
     })
     .Build();
@@ -53,7 +55,7 @@ var serviceProvider = host.Services;
 var authorizationService = serviceProvider.GetRequiredService<IAuthorizationService>();
 var authorizationFilter = new AuthorizationFilter(authorizationService);
 
-var telegram = new PRBotBuilder("7210697457:AAGfIaWrTejyz5VMDeWMvHKt45zofO5Leec")
+var telegram = new PRBotBuilder("test")
                     .SetClearUpdatesOnStart(true)
                     .SetServiceProvider(serviceProvider)
                     .Build();
